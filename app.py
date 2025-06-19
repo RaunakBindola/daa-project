@@ -195,6 +195,56 @@ def delete_faculty():
     conn.close()
     return render_template('delete_faculty.html', faculties=faculties)
 
+from flask import make_response, render_template_string
+from xhtml2pdf import pisa
+from io import BytesIO
+
+from io import BytesIO
+import pandas as pd
+from flask import make_response
+
+@app.route('/export/excel')
+def export_excel():
+    conn = sqlite3.connect('timetable.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT timing FROM timetable_archive ORDER BY slot_index")
+    slot_timings = [row[0] for row in cursor.fetchall()]
+
+    cursor.execute("SELECT day, slot_index, teacher FROM timetable_archive")
+    raw_data = cursor.fetchall()
+    conn.close()
+
+    # Build grid: {day: [teacher1, teacher2, ...]}
+    from collections import defaultdict
+    grid = defaultdict(lambda: [""] * len(slot_timings))
+    for day, slot_index, teacher in raw_data:
+        grid[day][slot_index] = teacher
+
+    # Format into rows for DataFrame
+    data_rows = []
+    for day in ["MON", "TUE", "WED", "THU", "FRI", "SAT"]:
+        if day in grid:
+            row = [day] + grid[day]
+            data_rows.append(row)
+
+    # Header row
+    columns = ["Day"] + slot_timings
+    df = pd.DataFrame(data_rows, columns=columns)
+
+    # Export to Excel in memory
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Timetable')
+
+    output.seek(0)
+    response = make_response(output.read())
+    response.headers["Content-Disposition"] = "attachment; filename=timetable.xlsx"
+    response.headers["Content-type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    return response
+
+
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

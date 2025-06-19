@@ -2,19 +2,91 @@
 <html>
 <head>
     <title>Generate Timetable</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        h2 {
+            text-align: center;
+            color: #4CAF50;
+        }
+
+        form {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
+
+<script>
+    function toggleRequired(id) {
+        const checkbox = document.getElementById('checkbox_' + id);
+        const input = document.getElementById('input_' + id);
+        input.required = checkbox.checked;
+        if (!checkbox.checked) {
+            input.value = '';
+        }
+    }
+
+    // Optional: clear unwanted requireds on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        {% for faculty in faculties %}
+            toggleRequired('{{ faculty.id }}');
+        {% endfor %}
+    });
+</script>
+
 <body>
     <h2>📅 Generate Timetable</h2>
 
     <form method="POST" action="/generate-timetable">
         <h3>Select Faculties and Weekly Classes</h3>
         {% for faculty in faculties %}
-            <div>
-                <input type="checkbox" name="faculty_ids" value="{{ faculty.id }}">
-                <label>{{ faculty.name }}</label>
-                <input type="number" name="classes_{{ faculty.id }}" min="1" max="20" placeholder="Classes/week" required>
-            </div>
+           <div>
+              <input type="checkbox" name="faculty_ids" value="{{ faculty.id }}" id="checkbox_{{ faculty.id }}" onchange="toggleRequired('{{ faculty.id }}')">
+              <label for="checkbox_{{ faculty.id }}">{{ faculty.name }}</label>
+              <input type="number" id="input_{{ faculty.id }}" name="classes_{{ faculty.id }}" min="1" max="20" placeholder="Classes/week">
+           </div>
         {% endfor %}
+
 
         <h3>Timetable Settings</h3>
         <label>Total slots per day:</label>
@@ -27,9 +99,23 @@
         </select><br><br>
 
         <label>Slot Timings (comma-separated):</label><br>
-        <textarea name="slot_timings" rows="3" cols="50" placeholder="e.g. 8:00-8:55,8:55-9:50,10:10-11:05" required></textarea><br><br>
+        <textarea name="slot_timings" rows="3" cols="50" placeholder="e.g. 8:00-8:55,8:55-9:50" required></textarea>
 
         <button type="submit">Generate Timetable</button>
     </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slotTimingsInput = document.querySelector('textarea[name="slot_timings"]');
+            slotTimingsInput.addEventListener('blur', () => {
+                const timings = slotTimingsInput.value.split(',');
+                const isValid = timings.every(timing => /\d{1,2}:\d{2}-\d{1,2}:\d{2}/.test(timing.trim()));
+                if (!isValid) {
+                    alert('Please enter valid slot timings in the format HH:MM-HH:MM, separated by commas.');
+                    slotTimingsInput.focus();
+                }
+            });
+        });
+    </script>
 </body>
 </html>

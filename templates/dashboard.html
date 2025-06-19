@@ -5,8 +5,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color:rgb(249, 253, 255);
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
 
+        .dashboard-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 800px;
+        }
 
+        aside {
+            margin-bottom: 20px;
+        }
+
+        aside h2 {
+            text-align: center;
+            color: #4CAF50;
+        }
+
+        aside ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        aside ul li {
+            margin: 10px 0;
+        }
+
+        aside ul li a {
+            display: block;
+            text-align: center;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        aside ul li a:hover {
+            background-color: #45a049;
+        }
+
+        main {
+            text-align: center;
+        }
+
+        main h2 {
+            color: #4CAF50;
+        }
+
+        main p {
+            color: #555;
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard-container">
@@ -29,5 +94,15 @@
         </main>
     </div>
     <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoutButton = document.getElementById('logout');
+            logoutButton.addEventListener('click', (e) => {
+                if (!confirm('Are you sure you want to logout?')) {
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
 </body>
 </html>

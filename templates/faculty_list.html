@@ -2,11 +2,71 @@
 <html>
 <head>
     <title>Faculty List</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color:rgb(255, 255, 255);
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+        }
+
+        table {
+            width: 90%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        a {
+            display: block;
+            text-align: center;
+            margin: 20px;
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Search bar styles */
+        #search-bar {
+            width: 90%;
+            margin: 10px auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
     <h1>📋 Faculty & Subjects</h1>
 
-    <table border="1" cellpadding="10">
+    <a href="{{ url_for('view_timetable') }}" style="margin-bottom: 20px;">📅 View Timetable</a>
+
+
+    <!-- Search bar for filtering -->
+    <input type="text" id="search-bar" placeholder="Search by subject or teacher...">
+
+    <table border="1" cellpadding="10" id="faculty-table">
         <tr>
             <th>ID</th>
             <th>Subject</th>
@@ -24,6 +84,23 @@
     <br>
     <a href="{{ url_for('add_faculty') }}">➕ Add Another Faculty</a>
     <br>
-    <a href="{{ url_for('faculty_list') }}">📅 View Timetable</a>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchBar = document.getElementById('search-bar');
+            const table = document.getElementById('faculty-table');
+            const rows = table.querySelectorAll('tr');
+
+            searchBar.addEventListener('input', () => {
+                const query = searchBar.value.toLowerCase();
+                rows.forEach((row, index) => {
+                    if (index === 0) return; // Skip header row
+                    const cells = row.querySelectorAll('td');
+                    const matches = Array.from(cells).some(cell => cell.textContent.toLowerCase().includes(query));
+                    row.style.display = matches ? '' : 'none';
+                });
+            });
+        });
+    </script>
 </body>
 </html>

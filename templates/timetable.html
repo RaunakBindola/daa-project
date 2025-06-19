@@ -4,22 +4,47 @@
     <meta charset="UTF-8">
     <title>Generated Timetable</title>
     <style>
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            font-family: Arial, sans-serif;
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
         }
-        th, td {
-            border: 1px solid #000;
-            padding: 6px;
+
+        h2 {
             text-align: center;
-            vertical-align: middle;
+            color: #4CAF50;
         }
+
+        table {
+            width: 90%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
         th {
-            background-color: #f2f2f2;
+            background-color: #4CAF50;
+            color: white;
         }
+
         td {
             min-height: 50px;
+        }
+
+        table td:hover {
+            background-color: #f0f0f0;
+        }
+
+        table tr:hover {
+            background-color: #e0f7fa;
         }
     </style>
 </head>
@@ -48,5 +73,10 @@
             {% endfor %}
         </tbody>
     </table>
+
+<div style="text-align: center; margin-top: 20px;">
+    <a href="{{ url_for('export_excel') }}">📤 Export Timetable as Excel</a>
+</div>
+
 </body>
 </html>
