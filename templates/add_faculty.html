@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Faculty</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>Add Faculty & Subject</h1>
+    <form method="post">
+        <label for="subject">Subject Name:</label><br>
+        <input type="text" name="subject" required><br><br>
+
+        <label for="teacher">Teacher Name:</label><br>
+        <input type="text" name="teacher" required><br><br>
+
+        <input type="submit" value="Add">
+    </form>
+</body>
+</html>

@@ -3,97 +3,153 @@ import sqlite3
 
 app = Flask(__name__)
 
-DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-SLOTS_PER_DAY = 4
 
-def generate_timetable():
+def generate_dynamic_timetable(class_counts, days_per_week, slots_per_day, slot_timings):
+    days = ["MON", "TUE", "WED", "THU", "FRI", "SAT"][:days_per_week]
+    timetable = []
+    total_slots = days_per_week * slots_per_day
+
+    # Create empty timetable grid
+    grid = {day: [""] * slots_per_day for day in days}
+
+    # Sort by least classes to distribute small ones first
+    sorted_faculties = sorted(class_counts.items(), key=lambda x: x[1])
+
+    from collections import deque
+
+    available_slots = deque([(day, slot) for day in days for slot in range(slots_per_day)])
+
+    for faculty, count in sorted_faculties:
+        placed = 0
+        used_days = set()
+
+        while placed < count and available_slots:
+            for _ in range(len(available_slots)):
+                day, slot = available_slots[0]
+                available_slots.rotate(-1)  # rotate to try next slot next time
+
+                if grid[day][slot] == "" and day not in used_days:
+                    grid[day][slot] = faculty
+                    placed += 1
+                    used_days.add(day)
+                    break  # move to next class for this faculty
+
+            # Reset used_days to allow reuse of days if needed
+            if placed < count and len(used_days) == len(days):
+                used_days = set()
+
+    for day in days:
+        timetable.append({"day": day, "slots": grid[day]})
+
+    return timetable
+
+def save_timetable_to_db(timetable, slot_timings):
     conn = sqlite3.connect('timetable.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT id, teacher FROM subjects")
-    subjects = cursor.fetchall()
-    graph = {sub[0]: set() for sub in subjects}
-    for i in range(len(subjects)):
-        for j in range(i + 1, len(subjects)):
-            id1, teacher1 = subjects[i]
-            id2, teacher2 = subjects[j]
-            if teacher1 == teacher2:
-                graph[id1].add(id2)
-                graph[id2].add(id1)
-    color = {}
-    max_slots = SLOTS_PER_DAY * len(DAYS)
-    for node in graph:
-        used = {color.get(neigh) for neigh in graph[node] if neigh in color}
-        for c in range(max_slots):
-            if c not in used:
-                color[node] = c
-                break
-    cursor.execute("DELETE FROM timetable")
-    for sub_id, c in color.items():
-        day = DAYS[c // SLOTS_PER_DAY]
-        slot = c % SLOTS_PER_DAY
-        cursor.execute("INSERT INTO timetable (subject_id, day, slot) VALUES (?, ?, ?)", (sub_id, day, slot))
+
+    cursor.execute('''CREATE TABLE IF NOT EXISTS timetable_archive (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        day TEXT,
+        slot_index INTEGER,
+        timing TEXT,
+        teacher TEXT
+    )''')
+
+    cursor.execute("DELETE FROM timetable_archive")  # Clear old for now (or skip this if you want to keep history)
+
+    for row in timetable:
+        for i, teacher in enumerate(row['slots']):
+            cursor.execute(
+                "INSERT INTO timetable_archive (day, slot_index, timing, teacher) VALUES (?, ?, ?, ?)",
+                (row['day'], i, slot_timings[i], teacher)
+            )
     conn.commit()
     conn.close()
+
 
 # 👉 Route 1: Dashboard
 @app.route('/')
 def dashboard():
     return render_template("dashboard.html")
 
-# 👉 Route 2: Generate timetable
-@app.route('/generate')
-def generate():
+from flask import Flask, render_template, redirect, url_for, request
+
+
+@app.route('/generate-timetable', methods=['GET', 'POST'])
+def generate_timetable_route():
     conn = sqlite3.connect('timetable.db')
     cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT teacher FROM subjects")
+    faculties = [{"id": idx, "name": row[0]} for idx, row in enumerate(cursor.fetchall())]
 
-    # Clear previous timetable
-    cursor.execute("DELETE FROM timetable")
+    if request.method == 'POST':
+        selected_ids = request.form.getlist('faculty_ids')
+        faculty_name_map = {str(f["id"]): f["name"] for f in faculties}
+        class_counts = {
+            faculty_name_map[fid]: int(request.form.get(f'classes_{fid}'))
+            for fid in selected_ids
+        }
 
-    # Get all subjects
-    cursor.execute("SELECT id FROM subjects")
-    subjects = [row[0] for row in cursor.fetchall()]
+        slots_per_day = int(request.form['slots_per_day'])
+        days_per_week = int(request.form['days_per_week'])  # 5 or 6
+        slot_timings = [s.strip() for s in request.form['slot_timings'].split(',')]
 
-    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-    slots = [1, 2, 3, 4, 5]  # e.g., 5 slots per day
+        timetable = generate_dynamic_timetable(
+            class_counts, days_per_week, slots_per_day, slot_timings
+        )
 
-    timetable = []
-    i = 0
+        save_timetable_to_db(timetable, slot_timings)
 
-    for day in days:
-        for slot in slots:
-            if i < len(subjects):
-                timetable.append((subjects[i], day, slot))
-                i += 1
-            else:
-                break
+        return render_template('timetable.html', timetable=timetable, slot_timings=slot_timings)
 
-    # Save the generated timetable
-    for entry in timetable:
-        cursor.execute("INSERT INTO timetable (subject_id, day, slot) VALUES (?, ?, ?)", entry)
+    return render_template('generate_timetable.html', faculties=faculties)
 
-    conn.commit()
-    conn.close()
-
-    return redirect(url_for('view'))  # Redirect to view timetable
-
-
-# 👉 Route 3: View timetable
-@app.route('/view')
-def view():
+    # 👉 Route 3: View timetable
+@app.route('/view-timetable')
+def view_timetable():
     conn = sqlite3.connect('timetable.db')
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT subjects.name, subjects.teacher, timetable.day, timetable.slot
-        FROM timetable
-        JOIN subjects ON timetable.subject_id = subjects.id
-        ORDER BY timetable.day, timetable.slot
+        SELECT day, slot_index, timing, teacher
+        FROM timetable_archive
+        ORDER BY 
+            CASE day 
+                WHEN 'MON' THEN 1
+                WHEN 'TUE' THEN 2
+                WHEN 'WED' THEN 3
+                WHEN 'THU' THEN 4
+                WHEN 'FRI' THEN 5
+                WHEN 'SAT' THEN 6
+            END,
+            slot_index
     """)
-    timetable = cursor.fetchall()
+    rows = cursor.fetchall()
     conn.close()
-    return render_template("view.html", timetable=timetable)
 
-from flask import render_template, request, redirect, url_for
-import sqlite3
+    # Build list of unique timings in correct order
+    slot_timings = []
+    max_slots = 0
+    for _, slot, timing, _ in rows:
+        if len(slot_timings) <= slot:
+            slot_timings.extend([""] * (slot - len(slot_timings) + 1))
+        slot_timings[slot] = timing
+        max_slots = max(max_slots, slot + 1)
+
+    # Prepare empty timetable
+    timetable = {}
+
+    for day, slot, _, teacher in rows:
+        if day not in timetable:
+            timetable[day] = [""] * max_slots
+        timetable[day][slot] = teacher
+
+    final_timetable = [{"day": day, "slots": timetable[day]} for day in ["MON", "TUE", "WED", "THU", "FRI", "SAT"] if day in timetable]
+
+    return render_template("timetable.html", timetable=final_timetable, slot_timings=slot_timings)
+
+
+
+
 
 @app.route('/add-faculty', methods=['GET', 'POST'])
 def add_faculty():
@@ -120,6 +176,24 @@ def faculty_list():
     conn.close()
     return render_template('faculty_list.html', subjects=subjects)
 
+
+@app.route('/delete_faculty', methods=['GET', 'POST'])
+def delete_faculty():
+    conn = sqlite3.connect('timetable.db')
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        selected_ids = request.form.getlist('faculty_ids')
+        for fid in selected_ids:
+            cursor.execute("DELETE FROM subjects WHERE rowid = ?", (fid,))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('delete_faculty'))
+
+    cursor.execute("SELECT rowid, teacher FROM subjects")
+    faculties = cursor.fetchall()
+    conn.close()
+    return render_template('delete_faculty.html', faculties=faculties)
 
 
 if __name__ == "__main__":

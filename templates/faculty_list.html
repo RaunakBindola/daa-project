@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Faculty List</title>
+</head>
+<body>
+    <h1>📋 Faculty & Subjects</h1>
+
+    <table border="1" cellpadding="10">
+        <tr>
+            <th>ID</th>
+            <th>Subject</th>
+            <th>Teacher</th>
+        </tr>
+        {% for subject in subjects %}
+        <tr>
+            <td>{{ subject[0] }}</td>
+            <td>{{ subject[1] }}</td>
+            <td>{{ subject[2] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <br>
+    <a href="{{ url_for('add_faculty') }}">➕ Add Another Faculty</a>
+    <br>
+    <a href="{{ url_for('faculty_list') }}">📅 View Timetable</a>
+</body>
+</html>

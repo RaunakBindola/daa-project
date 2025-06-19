@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Timetable</title>
+</head>
+<body>
+    <h2>📅 Generate Timetable</h2>
+
+    <form method="POST" action="/generate-timetable">
+        <h3>Select Faculties and Weekly Classes</h3>
+        {% for faculty in faculties %}
+            <div>
+                <input type="checkbox" name="faculty_ids" value="{{ faculty.id }}">
+                <label>{{ faculty.name }}</label>
+                <input type="number" name="classes_{{ faculty.id }}" min="1" max="20" placeholder="Classes/week" required>
+            </div>
+        {% endfor %}
+
+        <h3>Timetable Settings</h3>
+        <label>Total slots per day:</label>
+        <input type="number" name="slots_per_day" min="1" required><br><br>
+
+        <label>Days per week:</label>
+        <select name="days_per_week" required>
+            <option value="5">5 (Mon–Fri)</option>
+            <option value="6">6 (Mon–Sat)</option>
+        </select><br><br>
+
+        <label>Slot Timings (comma-separated):</label><br>
+        <textarea name="slot_timings" rows="3" cols="50" placeholder="e.g. 8:00-8:55,8:55-9:50,10:10-11:05" required></textarea><br><br>
+
+        <button type="submit">Generate Timetable</button>
+    </form>
+</body>
+</html>

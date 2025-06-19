@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete Faculty</title>
+</head>
+<body>
+    <h2>Delete Faculty</h2>
+    <form method="POST">
+        {% for faculty in faculties %}
+            <label>
+                <input type="checkbox" name="faculty_ids" value="{{ faculty[0] }}">
+                {{ faculty[1] }}
+            </label><br>
+        {% endfor %}
+        <br>
+        <button type="submit">Delete Selected</button>
+    </form>
+    <a href="{{ url_for('dashboard') }}">⬅ Back to Dashboard</a>
+</body>
+</html>
